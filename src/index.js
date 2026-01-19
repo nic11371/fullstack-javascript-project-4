@@ -2,6 +2,9 @@ import fs from 'fs/promises';
 import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import debug from 'debug';
+
+const log = debug('page-loader');
 
 const getSlug = (url) => {
   const { hostname, pathname } = new URL(url);
@@ -56,25 +59,42 @@ export default (url, outputDir = process.cwd()) => {
   const htmlFilepath = path.join(outputDir, htmlFilename);
   const assetsDirPath = path.join(outputDir, assetsDirName);
 
+  log(`Downloading ${url} to ${outputDir}`);
+
   let assets = [];
 
   return axios.get(url)
+    .catch((e) => { throw new Error(`Failed to load page: ${url}. ${e.message}`); })
     .then((response) => {
+      log('Main page loaded');
       const result = processHtml(response.data, url, assetsDirName);
       assets = result.assets;
+      log(`Found ${assets.length} assets`);
       return result.html;
     })
-    .then((html) => fs.writeFile(htmlFilepath, html))
+    .then((html) => {
+      log(`Writing HTML to ${htmlFilepath}`);
+      return fs.writeFile(htmlFilepath, html);
+    })
     .then(() => {
       if (assets.length > 0) {
+        log(`Creating assets directory ${assetsDirPath}`);
         return fs.mkdir(assetsDirPath).then(() => assets);
       }
       return [];
     })
     .then((assetsList) => {
+      log(`Downloading ${assetsList.length} assets`);
       const tasks = assetsList.map(({ url, filename }) => axios.get(url, { responseType: 'arraybuffer' })
-        .then((response) => fs.writeFile(path.join(assetsDirPath, filename), response.data)));
+        .then((response) => {
+          log(`Asset downloaded: ${url} -> ${filename}`);
+          return fs.writeFile(path.join(assetsDirPath, filename), response.data);
+        })
+        .catch((e) => { throw new Error(`Failed to load resource: ${url}. ${e.message}`); }));
       return Promise.all(tasks);
     })
-    .then(() => htmlFilepath);
+    .then(() => {
+      log('Page loaded successfully');
+      return htmlFilepath;
+    });
 };
