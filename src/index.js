@@ -15,29 +15,36 @@ const getAssetFilename = (url) => {
   const { hostname, pathname } = new URL(url);
   const { dir, name, ext } = path.posix.parse(pathname);
   const slug = `${hostname}${dir}/${name}`.replace(/[^a-zA-Z0-9]/g, '-');
-  return `${slug}${ext}`;
+  return `${slug}${ext || '.html'}`;
 };
 
 const processHtml = (html, pageUrl, assetsDirName) => {
   const $ = cheerio.load(html);
   const assets = [];
+  const tags = [
+    { name: 'img', attr: 'src' },
+    { name: 'script', attr: 'src' },
+    { name: 'link', attr: 'href' },
+  ];
 
-  $('img').each((i, element) => {
-    const src = $(element).attr('src');
-    if (!src) return;
+  tags.forEach(({ name, attr }) => {
+    $(name).each((i, element) => {
+      const url = $(element).attr(attr);
+      if (!url) return;
 
-    const fullUrl = new URL(src, pageUrl);
-    if (fullUrl.hostname !== new URL(pageUrl).hostname) return;
+      const fullUrl = new URL(url, pageUrl);
+      if (fullUrl.hostname !== new URL(pageUrl).hostname) return;
 
-    const filename = getAssetFilename(fullUrl.toString());
-    const filepath = path.posix.join(assetsDirName, filename);
+      const filename = getAssetFilename(fullUrl.toString());
+      const filepath = path.posix.join(assetsDirName, filename);
 
-    assets.push({
-      url: fullUrl.toString(),
-      filename,
+      assets.push({
+        url: fullUrl.toString(),
+        filename,
+      });
+
+      $(element).attr(attr, filepath);
     });
-
-    $(element).attr('src', filepath);
   });
 
   return { html: $.html(), assets };
