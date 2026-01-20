@@ -1,5 +1,5 @@
 {
-  "name": "page-loader",
+  "name": "@hexlet/code",
   "version": "1.0.0",
   "description": "Page loader utility",
   "type": "module",

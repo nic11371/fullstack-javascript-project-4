@@ -37,15 +37,9 @@ test('downloads page and assets', async () => {
       </body>
     </html>
   `;
-  const imageContent = 'image content';  
   const imageContent = 'image content';
   const cssContent = 'css content';
   const jsContent = 'js content';
-
-  nock('https://ru.hexlet.io')
-      .get('/courses')
-      .reply(200, html);  
-      .reply(200, html);
 
   nock('https://ru.hexlet.io')
       .get('/courses')
@@ -54,8 +48,6 @@ test('downloads page and assets', async () => {
   nock('https://ru.hexlet.io')
       .get('/assets/professions/nodejs.png')
       .reply(200, imageContent);  
-  const filepath = await pageLoader(url, tmpDir);  
-      .reply(200, imageContent);
 
   nock('https://ru.hexlet.io')
       .get('/assets/application.css')
@@ -65,7 +57,7 @@ test('downloads page and assets', async () => {
       .get('/packs/js/runtime.js')
       .reply(200, jsContent);
 
-  const filepath = await pageLoader(url, tmpDir);
+  const filepath = await pageLoader(url, tmpDir)
 
   expect(filepath).toBe(path.join(tmpDir, 'ru-hexlet-io-courses.html'));
   const fileContent = await fs.readFile(filepath, 'utf-8');
