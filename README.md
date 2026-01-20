@@ -45,7 +45,7 @@ page-loader [options] <url>
 ### Example
 
 ```bash
-page-loader --output /var/tmp https://ru.hexlet.io/courses
+page-loader --output /var/tmp https://yandex.ru
 ```
 
 ## Development
