@@ -3,6 +3,7 @@ import path from 'path';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import debug from 'debug';
+import Listr from 'listr';
 
 const log = debug('page-loader');
 
@@ -85,13 +86,17 @@ export default (url, outputDir = process.cwd()) => {
     })
     .then((assetsList) => {
       log(`Downloading ${assetsList.length} assets`);
-      const tasks = assetsList.map(({ url, filename }) => axios.get(url, { responseType: 'arraybuffer' })
-        .then((response) => {
-          log(`Asset downloaded: ${url} -> ${filename}`);
-          return fs.writeFile(path.join(assetsDirPath, filename), response.data);
-        })
-        .catch((e) => { throw new Error(`Failed to load resource: ${url}. ${e.message}`); }));
-      return Promise.all(tasks);
+      const tasks = new Listr(assetsList.map(({ url, filename }) => ({
+        title: url,
+        task: () => axios.get(url, { responseType: 'arraybuffer' })
+          .then((response) => {
+            log(`Asset downloaded: ${url} -> ${filename}`);
+            return fs.writeFile(path.join(assetsDirPath, filename), response.data);
+          })
+          .catch((e) => { throw new Error(`Failed to load resource: ${url}. ${e.message}`); }),
+      })), { concurrent: true });
+
+      return tasks.run();
     })
     .then(() => {
       log('Page loaded successfully');
